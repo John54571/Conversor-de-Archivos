@@ -23,6 +23,7 @@ class UserConfig:
     last_used_dir: str = ""
     show_preview: bool = True
     language: str = "es"
+    ffmpeg_path: str = ""
 
 
 @dataclass

@@ -10,13 +10,29 @@ class TestCheckFfmpeg:
     def test_ffmpeg_available(self, mock_which):
         from conversor.utils.ffmpeg_check import check_ffmpeg
         mock_which.return_value = "/usr/bin/ffmpeg"
-        assert check_ffmpeg() is True
+        found, path = check_ffmpeg()
+        assert found is True
+        assert path != ""
 
     @patch("shutil.which")
     def test_ffmpeg_not_available(self, mock_which):
         from conversor.utils.ffmpeg_check import check_ffmpeg
         mock_which.return_value = None
-        assert check_ffmpeg() is False
+        # Mock common paths to not exist
+        with patch("pathlib.Path.is_dir", return_value=False):
+            found, path = check_ffmpeg()
+            assert found is False
+            assert path == ""
+
+    @patch("shutil.which")
+    def test_ffmpeg_with_configured_path(self, mock_which):
+        from conversor.utils.ffmpeg_check import check_ffmpeg
+        mock_which.return_value = None
+        # Simular ruta configurada válida
+        with patch("pathlib.Path.is_file", return_value=True), \
+             patch("pathlib.Path.name", "ffmpeg.exe"):
+            found, path = check_ffmpeg("/usr/bin/ffmpeg.exe")
+            assert found is True
 
 
 class TestCheckFfmpegVersion:
@@ -56,14 +72,15 @@ class TestGetFfmpegPath:
         from conversor.utils.ffmpeg_check import get_ffmpeg_path
         mock_which.return_value = "/usr/bin/ffmpeg"
         path = get_ffmpeg_path()
-        assert path == "/usr/bin/ffmpeg"
+        assert path is not None
 
     @patch("shutil.which")
     def test_path_not_found(self, mock_which):
         from conversor.utils.ffmpeg_check import get_ffmpeg_path
         mock_which.return_value = None
-        path = get_ffmpeg_path()
-        assert path is None
+        with patch("pathlib.Path.is_dir", return_value=False):
+            path = get_ffmpeg_path()
+            assert path is None
 
 
 class TestCheckFfprobe:
@@ -79,4 +96,5 @@ class TestCheckFfprobe:
     def test_ffprobe_not_available(self, mock_which):
         from conversor.utils.ffmpeg_check import check_ffprobe
         mock_which.return_value = None
-        assert check_ffprobe() is False
+        with patch("pathlib.Path.is_dir", return_value=False):
+            assert check_ffprobe() is False

@@ -161,9 +161,15 @@ class App(ctk.CTk):
     def _check_dependencies(self):
         logger.info("Verificando dependencias del sistema...")
         
-        if check_ffmpeg():
+        configured_path = config_manager.get_config().ffmpeg_path
+        if configured_path:
+            logger.info(f"Ruta manual de FFmpeg configurada: {configured_path}")
+        
+        found, ffmpeg_dir = check_ffmpeg(configured_path)
+        
+        if found:
             self._ffmpeg_status.configure(text="Aplicación creada por John", text_color=COLORS["fg_header"])
-            logger.info("Dependencias: FFmpeg OK")
+            logger.info(f"Dependencias: FFmpeg OK ({ffmpeg_dir})")
         else:
             self._ffmpeg_status.configure(
                 text="FFmpeg no encontrado (audio/video no disponibles)",

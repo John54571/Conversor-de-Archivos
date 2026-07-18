@@ -1,8 +1,10 @@
 import customtkinter as ctk
 import threading
+from tkinter import filedialog
 from .themes import COLORS, FONTS, SIZES
 from ..utils.config import config_manager, UserConfig
 from ..utils.update_checker import get_current_version, check_for_updates
+from ..utils.ffmpeg_check import check_ffmpeg
 
 
 class SettingsWindow(ctk.CTkToplevel):
@@ -147,6 +149,45 @@ class SettingsWindow(ctk.CTkToplevel):
                         fg_color=COLORS["accent"],
                         hover_color=COLORS["accent_hover"]).pack(fill="x", padx=12, pady=(4, 10))
 
+        ffmpeg_frame = ctk.CTkFrame(scroll, fg_color=COLORS["bg_group"], corner_radius=6)
+        ffmpeg_frame.pack(fill="x", pady=(0, 12))
+        
+        ctk.CTkLabel(ffmpeg_frame, text="FFmpeg (audio/video)", font=FONTS["heading"],
+                     text_color=COLORS["fg_primary"]).pack(fill="x", padx=12, pady=(10, 6))
+
+        self._ffmpeg_path_var = ctk.StringVar(value=self._config.ffmpeg_path)
+        ffmpeg_entry_frame = ctk.CTkFrame(ffmpeg_frame, fg_color="transparent")
+        ffmpeg_entry_frame.pack(fill="x", padx=12, pady=4)
+
+        self._ffmpeg_entry = ctk.CTkEntry(
+            ffmpeg_entry_frame, textvariable=self._ffmpeg_path_var,
+            font=FONTS["small"], fg_color=COLORS["bg_panel"],
+            border_color=COLORS["border"], height=30,
+            placeholder_text="Dejar vacío para detección automática"
+        )
+        self._ffmpeg_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        ctk.CTkButton(
+            ffmpeg_entry_frame, text="Examinar...", width=100, height=30,
+            font=FONTS["small"], fg_color=COLORS["button_bg"],
+            hover_color=COLORS["button_hover"], text_color=COLORS["fg_primary"],
+            command=self._browse_ffmpeg
+        ).pack(side="left", padx=2)
+
+        ctk.CTkButton(
+            ffmpeg_entry_frame, text="Detectar", width=100, height=30,
+            font=FONTS["small"], fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"], text_color=COLORS["fg_header"],
+            command=self._detect_ffmpeg
+        ).pack(side="left", padx=2)
+
+        self._ffmpeg_status_label = ctk.CTkLabel(
+            ffmpeg_frame, text="", font=FONTS["small"],
+            text_color=COLORS["fg_muted"], justify="left"
+        )
+        self._ffmpeg_status_label.pack(fill="x", padx=12, pady=(4, 10))
+        self._update_ffmpeg_status()
+
         about_frame = ctk.CTkFrame(scroll, fg_color=COLORS["bg_group"], corner_radius=6)
         about_frame.pack(fill="x", pady=(0, 12))
         
@@ -197,6 +238,7 @@ class SettingsWindow(ctk.CTkToplevel):
             ocr_language=self._ocr_lang_var.get(),
             create_zip_on_batch=self._zip_var.get(),
             auto_delete_source=self._auto_delete_var.get(),
+            ffmpeg_path=self._ffmpeg_path_var.get(),
         )
         self.destroy()
 
@@ -225,3 +267,30 @@ class SettingsWindow(ctk.CTkToplevel):
                 text_color=COLORS["accent"]
             )
             UpdateDialog(self.winfo_toplevel(), release_info)
+
+    def _browse_ffmpeg(self):
+        path = filedialog.askopenfilename(
+            title="Seleccionar ffmpeg.exe",
+            filetypes=[("FFmpeg executable", "ffmpeg.exe"), ("All files", "*.*")]
+        )
+        if path:
+            self._ffmpeg_path_var.set(path)
+            self._update_ffmpeg_status()
+
+    def _detect_ffmpeg(self):
+        self._ffmpeg_path_var.set("")
+        self._update_ffmpeg_status()
+
+    def _update_ffmpeg_status(self):
+        configured_path = self._ffmpeg_path_var.get()
+        found, path = check_ffmpeg(configured_path)
+        if found:
+            self._ffmpeg_status_label.configure(
+                text=f"FFmpeg encontrado en: {path}",
+                text_color=COLORS["success"]
+            )
+        else:
+            self._ffmpeg_status_label.configure(
+                text="FFmpeg NO encontrado. Configure la ruta manualmente o instale FFmpeg.",
+                text_color=COLORS["error"]
+            )

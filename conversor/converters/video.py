@@ -33,6 +33,7 @@ class VideoConverter(BaseConverter):
 
     def convert(self, task: ConversionTask) -> Path:
         import ffmpeg
+        from pathlib import Path as P
 
         src = task.source_path
         tgt_ext = task.output_format.lower()
@@ -45,6 +46,18 @@ class VideoConverter(BaseConverter):
         if task.on_progress:
             task.on_progress(0.1)
 
+        # Configurar ruta de FFmpeg para ffmpeg-python
+        configured_path = config_manager.get_config().ffmpeg_path
+        ffmpeg_cmd = "ffmpeg"
+        if configured_path:
+            ffmpeg_exe = P(configured_path)
+            if ffmpeg_exe.is_file() and ffmpeg_exe.name.lower() == "ffmpeg.exe":
+                ffmpeg_cmd = str(ffmpeg_exe)
+                logger.debug(f"ffmpeg-python usando: {ffmpeg_cmd}")
+            elif ffmpeg_exe.is_dir():
+                ffmpeg_cmd = str(ffmpeg_exe / "ffmpeg.exe")
+                logger.debug(f"ffmpeg-python usando: {ffmpeg_cmd}")
+
         try:
             stream = ffmpeg.input(str(src))
 
@@ -53,7 +66,7 @@ class VideoConverter(BaseConverter):
                 if task.on_progress:
                     task.on_progress(0.4)
                 ffmpeg.output(stream, str(output_path), format="gif").overwrite_output().run(
-                    capture_stdout=True, capture_stderr=True
+                    cmd=ffmpeg_cmd, capture_stdout=True, capture_stderr=True
                 )
             else:
                 codec_map = {
@@ -88,7 +101,7 @@ class VideoConverter(BaseConverter):
                 if task.on_progress:
                     task.on_progress(0.6)
 
-                output_stream.overwrite_output().run(capture_stdout=True, capture_stderr=True)
+                output_stream.overwrite_output().run(cmd=ffmpeg_cmd, capture_stdout=True, capture_stderr=True)
 
             if task.on_progress:
                 task.on_progress(1.0)

@@ -137,6 +137,19 @@ class AudioConverter(BaseConverter):
             task.on_progress(0.2)
 
         src_ext = src.suffix.lower().lstrip(".")
+        
+        # Configurar ruta de FFmpeg para pydub
+        configured_path = config_manager.get_config().ffmpeg_path
+        if configured_path:
+            from pathlib import Path as P
+            ffmpeg_exe = P(configured_path)
+            if ffmpeg_exe.is_file():
+                AudioSegment.converter = str(ffmpeg_exe)
+                logger.debug(f"pydub usando FFmpeg: {ffmpeg_exe}")
+            elif ffmpeg_exe.is_dir():
+                AudioSegment.converter = str(ffmpeg_exe / "ffmpeg.exe")
+                logger.debug(f"pydub usando FFmpeg: {ffmpeg_exe / 'ffmpeg.exe'}")
+        
         audio = AudioSegment.from_file(str(src), format=src_ext)
 
         if task.on_progress:
