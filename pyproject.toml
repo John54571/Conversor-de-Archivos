@@ -1,6 +1,6 @@
 [project]
 name = "conversor-de-archivos"
-version = "1.0.1"
+version = "1.5.0"
 description = "Conversor universal de archivos con GUI - Soporta imagenes, audio, video y documentos"
 requires-python = ">=3.10"
 dependencies = [
@@ -26,6 +26,7 @@ dependencies = [
     "ebooklib>=0.20",
     "beautifulsoup4>=4.15.0",
     "pygame>=2.6.1",
+    "odfpy>=1.4.1",
 ]
 
 [project.scripts]

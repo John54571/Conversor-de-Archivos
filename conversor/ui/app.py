@@ -19,6 +19,7 @@ from ..utils.config import config_manager
 from ..utils.logger import logger
 from ..utils.zip_utils import create_zip_from_files
 from ..utils.windows_integration import register_windows_context_menu, unregister_windows_context_menu, is_context_menu_registered, handle_command_line_args
+from ..utils.update_checker import check_for_updates
 
 
 class App(ctk.CTk):
@@ -41,25 +42,28 @@ class App(ctk.CTk):
 
         self._build_ui()
         self._check_dependencies()
+        self._ensure_context_menu()
         self._handle_cli_args()
+        self._setup_scaling()
+        self._check_updates_on_startup()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _set_icon(self):
         try:
             if getattr(sys, "frozen", False):
-                base_path = sys._MEIPASS
+                base_path = os.path.join(sys._MEIPASS, "conversor", "assets")
             else:
-                base_path = str(Path(__file__).parent.parent)
+                base_path = str(Path(__file__).parent.parent / "assets")
             
-            icon_path = os.path.join(base_path, "assets", "iconochoro.ico")
+            icon_path = os.path.join(base_path, "iconochoro.ico")
             if os.path.exists(icon_path):
                 self.iconbitmap(icon_path)
         except Exception:
             pass
 
     def _build_ui(self):
-        top_bar = ctk.CTkFrame(self, fg_color=COLORS["bg_header"], corner_radius=0, height=48)
+        top_bar = ctk.CTkFrame(self, fg_color=COLORS["bg_header"], corner_radius=0, height=60)
         top_bar.pack(fill="x")
         top_bar.pack_propagate(False)
 
@@ -154,6 +158,52 @@ class App(ctk.CTk):
                 text="FFmpeg no encontrado (audio/video no disponibles)",
                 text_color="#FFB6B6"
             )
+
+    def _ensure_context_menu(self):
+        if sys.platform == "win32" and not is_context_menu_registered():
+            try:
+                register_windows_context_menu()
+            except Exception:
+                pass
+
+    def _setup_scaling(self):
+        self._base_width = SIZES["min_width"]
+        self._scale_factor = 1.0
+        self.bind("<Configure>", self._on_window_resize)
+
+    def _on_window_resize(self, event):
+        if event.widget != self:
+            return
+        new_width = self.winfo_width()
+        new_scale = max(1.0, new_width / self._base_width)
+        if abs(new_scale - self._scale_factor) > 0.05:
+            self._scale_factor = new_scale
+            self.after(100, self._update_scaling)
+
+    def _update_scaling(self):
+        scale = self._scale_factor
+        new_fonts = {
+            "title": ("Segoe UI", int(20 * scale), "bold"),
+            "heading": ("Segoe UI", int(16 * scale), "bold"),
+            "body": ("Segoe UI", int(13 * scale)),
+            "body_bold": ("Segoe UI", int(13 * scale), "bold"),
+            "small": ("Segoe UI", int(11 * scale)),
+            "small_bold": ("Segoe UI", int(11 * scale), "bold"),
+            "mono": ("Consolas", int(12 * scale)),
+        }
+        FONTS.update(new_fonts)
+
+    def _check_updates_on_startup(self):
+        def _do_check():
+            release_info = check_for_updates()
+            if release_info:
+                self.after(0, lambda: self._show_update_dialog(release_info))
+
+        threading.Thread(target=_do_check, daemon=True).start()
+
+    def _show_update_dialog(self, release_info):
+        from .update_dialog import UpdateDialog
+        UpdateDialog(self, release_info)
 
     def _handle_cli_args(self):
         file_path = handle_command_line_args()

@@ -34,13 +34,13 @@ COLORS = {
 }
 
 FONTS = {
-    "title": ("Segoe UI", 16, "bold"),
-    "heading": ("Segoe UI", 13, "bold"),
-    "body": ("Segoe UI", 11),
-    "body_bold": ("Segoe UI", 11, "bold"),
-    "small": ("Segoe UI", 9),
-    "small_bold": ("Segoe UI", 9, "bold"),
-    "mono": ("Consolas", 10),
+    "title": ("Segoe UI", 20, "bold"),
+    "heading": ("Segoe UI", 16, "bold"),
+    "body": ("Segoe UI", 13),
+    "body_bold": ("Segoe UI", 13, "bold"),
+    "small": ("Segoe UI", 11),
+    "small_bold": ("Segoe UI", 11, "bold"),
+    "mono": ("Consolas", 12),
 }
 
 SIZES = {

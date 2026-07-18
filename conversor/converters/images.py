@@ -72,10 +72,11 @@ class ImageConverter(BaseConverter):
 
         src_ext = src.suffix.lower().lstrip(".")
 
-        if src_ext in ("heic", "heif"):
+        if src_ext in ("heic", "heif") or tgt_ext == "heic":
             try:
-                from pillow_heif import register_heif_opener
+                from pillow_heif import register_heif_opener, register_heif_saver
                 register_heif_opener()
+                register_heif_saver()
             except ImportError:
                 logger.warning("pillow-heif no disponible, intentando conversión básica")
 
@@ -114,6 +115,9 @@ class ImageConverter(BaseConverter):
         self._apply_metadata(img, metadata, save_kwargs)
 
         if img.mode == "RGBA" and tgt_ext in ("jpg", "jpeg", "bmp"):
+            img = img.convert("RGB")
+
+        if tgt_ext == "heic" and img.mode in ("RGBA", "P", "LA"):
             img = img.convert("RGB")
 
         fmt_map = {

@@ -1,5 +1,7 @@
 import customtkinter as ctk
+import os
 from typing import Callable
+from pathlib import Path
 
 from .themes import COLORS, FONTS, SIZES
 from ..converters.base import ConversionTask, ConversionStatus
@@ -165,10 +167,25 @@ class ProgressPanel(ctk.CTkFrame):
             widgets["progress"].configure(progress_color=COLORS["progress_fill"])
         elif task.status == ConversionStatus.COMPLETED:
             widgets["progress"].configure(progress_color=COLORS["success"])
+            if "folder_btn" not in widgets and task.output_path:
+                folder_btn = ctk.CTkButton(
+                    widgets["frame"], text="📁", width=24, height=24,
+                    font=("Segoe UI Emoji", 11),
+                    fg_color=COLORS["button_bg"], hover_color=COLORS["button_hover"],
+                    text_color=COLORS["fg_primary"], corner_radius=3,
+                    command=lambda p=task.output_path: self._open_folder(p)
+                )
+                folder_btn.pack(side="right", padx=(4, 4))
+                widgets["folder_btn"] = folder_btn
         elif task.status == ConversionStatus.FAILED:
             widgets["progress"].configure(progress_color=COLORS["error"])
             if task.error_message:
                 widgets["format_label"].configure(text=task.error_message[:40], text_color=COLORS["error"])
+
+    def _open_folder(self, output_path: Path):
+        folder = output_path.parent if output_path.is_file() else output_path
+        if folder.exists():
+            os.startfile(str(folder))
 
     def update_global(self, summary: dict, estimated_time: float = 0.0):
         total = summary["total"]

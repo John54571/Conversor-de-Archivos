@@ -1,6 +1,8 @@
 import customtkinter as ctk
+import threading
 from .themes import COLORS, FONTS, SIZES
 from ..utils.config import config_manager, UserConfig
+from ..utils.update_checker import get_current_version, check_for_updates
 
 
 class SettingsWindow(ctk.CTkToplevel):
@@ -145,6 +147,30 @@ class SettingsWindow(ctk.CTkToplevel):
                         fg_color=COLORS["accent"],
                         hover_color=COLORS["accent_hover"]).pack(fill="x", padx=12, pady=(4, 10))
 
+        about_frame = ctk.CTkFrame(scroll, fg_color=COLORS["bg_group"], corner_radius=6)
+        about_frame.pack(fill="x", pady=(0, 12))
+        
+        ctk.CTkLabel(about_frame, text="Acerca de", font=FONTS["heading"],
+                     text_color=COLORS["fg_primary"]).pack(fill="x", padx=12, pady=(10, 6))
+
+        current_version = get_current_version()
+        ctk.CTkLabel(about_frame, text=f"Version actual: {current_version}",
+                     font=FONTS["body"], text_color=COLORS["fg_primary"]).pack(fill="x", padx=12, pady=4)
+
+        self._update_status_label = ctk.CTkLabel(
+            about_frame, text="", font=FONTS["small"],
+            text_color=COLORS["fg_muted"]
+        )
+        self._update_status_label.pack(fill="x", padx=12, pady=4)
+
+        self._check_update_btn = ctk.CTkButton(
+            about_frame, text="Buscar actualizaciones", width=180, height=30,
+            font=FONTS["body_bold"], fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"], text_color=COLORS["fg_header"],
+            command=self._check_for_updates_manual
+        )
+        self._check_update_btn.pack(fill="x", padx=12, pady=(4, 10))
+
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.pack(fill="x", padx=16, pady=(0, 16))
 
@@ -173,3 +199,29 @@ class SettingsWindow(ctk.CTkToplevel):
             auto_delete_source=self._auto_delete_var.get(),
         )
         self.destroy()
+
+    def _check_for_updates_manual(self):
+        self._check_update_btn.configure(state="disabled", text="Buscando...")
+        self._update_status_label.configure(text="Buscando actualizaciones...", text_color=COLORS["fg_muted"])
+
+        def _do_check():
+            release_info = check_for_updates()
+            self.after(0, lambda: self._show_update_result(release_info))
+
+        threading.Thread(target=_do_check, daemon=True).start()
+
+    def _show_update_result(self, release_info):
+        self._check_update_btn.configure(state="normal", text="Buscar actualizaciones")
+        
+        if release_info is None:
+            self._update_status_label.configure(
+                text="La aplicacion esta actualizada",
+                text_color=COLORS["success"]
+            )
+        else:
+            from .update_dialog import UpdateDialog
+            self._update_status_label.configure(
+                text=f"Nueva version disponible: {release_info.version}",
+                text_color=COLORS["accent"]
+            )
+            UpdateDialog(self.winfo_toplevel(), release_info)

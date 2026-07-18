@@ -4,6 +4,8 @@ from pathlib import Path
 
 
 def check_ffmpeg() -> bool:
+    if hasattr(shutil.which, "cache_clear"):
+        shutil.which.cache_clear()
     return shutil.which("ffmpeg") is not None
 
 
@@ -24,8 +26,12 @@ def check_ffmpeg_version() -> str | None:
 
 
 def get_ffmpeg_path() -> str | None:
+    if hasattr(shutil.which, "cache_clear"):
+        shutil.which.cache_clear()
     return shutil.which("ffmpeg")
 
 
 def check_ffprobe() -> bool:
+    if hasattr(shutil.which, "cache_clear"):
+        shutil.which.cache_clear()
     return shutil.which("ffprobe") is not None
