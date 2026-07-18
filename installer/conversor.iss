@@ -38,7 +38,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "installffmpeg"; Description: "Instalar FFmpeg (requerido para audio/video)"; GroupDescription: "Componentes adicionales:"; Flags: unchecked
 
 [Files]
-Source: "..\dist\ConversorDeArchivos\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\ConversorDeArchivos.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\conversor\assets\iconochoro.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
