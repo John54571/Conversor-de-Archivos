@@ -44,7 +44,7 @@ class App(ctk.CTk):
         self._check_dependencies()
         self._ensure_context_menu()
         self._handle_cli_args()
-        self._setup_scaling()
+        self._setup_dynamic_scaling()
         self._check_updates_on_startup()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -166,16 +166,72 @@ class App(ctk.CTk):
             except Exception:
                 pass
 
-    def _setup_scaling(self):
+    def _setup_dynamic_scaling(self):
         self._base_width = SIZES["min_width"]
+        self._scale_factor = 1.0
+        self._resize_timer = None
         self.bind("<Configure>", self._on_window_resize)
 
     def _on_window_resize(self, event):
         if event.widget != self:
             return
+        
         new_width = self.winfo_width()
-        scale = max(1.0, new_width / self._base_width)
-        ctk.set_widget_scaling(scale)
+        new_scale = max(1.0, new_width / self._base_width)
+        
+        if abs(new_scale - self._scale_factor) > 0.1:
+            self._scale_factor = new_scale
+            if self._resize_timer:
+                self.after_cancel(self._resize_timer)
+            self._resize_timer = self.after(300, self._apply_scaling)
+
+    def _apply_scaling(self):
+        scale = self._scale_factor
+        new_fonts = {
+            "title": ("Segoe UI", int(20 * scale), "bold"),
+            "heading": ("Segoe UI", int(16 * scale), "bold"),
+            "body": ("Segoe UI", int(13 * scale)),
+            "body_bold": ("Segoe UI", int(13 * scale), "bold"),
+            "small": ("Segoe UI", int(11 * scale)),
+            "small_bold": ("Segoe UI", int(11 * scale), "bold"),
+            "mono": ("Consolas", int(12 * scale)),
+        }
+        FONTS.update(new_fonts)
+        self._update_all_widget_fonts()
+
+    def _update_all_widget_fonts(self):
+        def _update_widget(widget):
+            try:
+                if hasattr(widget, 'cget') and 'font' in widget.keys():
+                    current_font = widget.cget('font')
+                    if current_font and isinstance(current_font, tuple) and len(current_font) >= 2:
+                        family = current_font[0]
+                        size = current_font[1]
+                        weight = current_font[2] if len(current_font) > 2 else "normal"
+                        
+                        if family in ["Segoe UI", "Consolas"]:
+                            if family == "Segoe UI":
+                                if size >= 18:
+                                    new_font = FONTS["title"]
+                                elif size >= 14:
+                                    new_font = FONTS["heading"]
+                                elif size >= 12:
+                                    new_font = FONTS["body"]
+                                elif size >= 10:
+                                    new_font = FONTS["small"]
+                                else:
+                                    new_font = FONTS["small"]
+                            else:
+                                new_font = FONTS["mono"]
+                            
+                            widget.configure(font=new_font)
+                
+                for child in widget.winfo_children():
+                    _update_widget(child)
+            except:
+                pass
+        
+        _update_widget(self)
 
     def _check_updates_on_startup(self):
         def _do_check():
