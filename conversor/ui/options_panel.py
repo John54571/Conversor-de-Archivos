@@ -5,7 +5,7 @@ from typing import Callable
 
 from .themes import COLORS, FONTS, SIZES
 from ..core.registry import ConverterRegistry
-from ..core.base import FileCategory, ConversionOptions
+from ..converters.base import FileCategory, ConversionOptions
 from ..utils.file_utils import get_category_label
 
 
@@ -126,10 +126,10 @@ class OptionsPanel(ctk.CTkFrame):
         self._summary_label.pack(fill="x", padx=10, pady=8)
 
         self._convert_btn = ctk.CTkButton(
-            self, text="CONVERTIR", font=FONTS["body_bold"],
+            self, text="CONVERTIR", font=("Segoe UI", 14, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
-            text_color=COLORS["fg_header"], height=40,
-            corner_radius=SIZES["border_radius"],
+            text_color="#000000", text_color_disabled="#000000",
+            height=40, corner_radius=SIZES["border_radius"],
             command=self._trigger_convert
         )
         self._convert_btn.pack(fill="x", padx=10, pady=10)
@@ -287,6 +287,12 @@ class OptionsPanel(ctk.CTkFrame):
 
     def set_converting(self, is_converting: bool):
         if is_converting:
-            self._convert_btn.configure(text="CONVERTIENDO...", state="disabled", fg_color=COLORS["warning"])
+            self._convert_btn.configure(
+                text="CONVERTIENDO...", state="disabled",
+                fg_color=COLORS["warning"], text_color="#000000", text_color_disabled="#000000"
+            )
         else:
-            self._convert_btn.configure(text="CONVERTIR", state="normal", fg_color=COLORS["accent"])
+            self._convert_btn.configure(
+                text="CONVERTIR", state="normal",
+                fg_color=COLORS["accent"], text_color="#000000", text_color_disabled="#000000"
+            )

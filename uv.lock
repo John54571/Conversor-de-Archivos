@@ -612,7 +612,7 @@ dependencies = [
     { name = "pypdf" },
     { name = "python-docx" },
     { name = "python-pptx" },
-    { name = "tkinterdnd2" },
+    { name = "windnd" },
 ]
 
 [package.metadata]
@@ -638,7 +638,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=3.0.0" },
     { name = "python-docx", specifier = ">=0.8.11" },
     { name = "python-pptx", specifier = ">=0.6.21" },
-    { name = "tkinterdnd2", specifier = ">=0.6.2" },
+    { name = "windnd", specifier = ">=1.0.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -3074,15 +3074,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tkinterdnd2"
-version = "0.6.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/68/a7400de3c15038522b00540480a1273809ad4680b941e9c5f82520b27f2f/tkinterdnd2-0.6.2.tar.gz", hash = "sha256:e015c2d863c9292e61d0294dea43010ff99c3cc9423e564676e04df413de9916", size = 729841, upload-time = "2026-07-05T00:05:21.316Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/1b/039642c212c24887a941af706b006365f3733d88aab383f0cf151768403c/tkinterdnd2-0.6.2-py3-none-any.whl", hash = "sha256:b6a8b229d26286c022bb2fbd311c2e431e4d9bbab8133be80e9c98e7bcf9fe59", size = 811654, upload-time = "2026-07-05T00:05:19.682Z" },
-]
-
-[[package]]
 name = "tqdm"
 version = "4.69.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3249,6 +3240,14 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0b/02/ae6ceac1baeda530866a85075641cec12989bd8d31af6d5ab4a3e8c92f47/webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923", size = 9721, upload-time = "2017-04-05T20:21:34.189Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", size = 11774, upload-time = "2017-04-05T20:21:32.581Z" },
+]
+
+[[package]]
+name = "windnd"
+version = "1.0.7"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/6b/cb24d7638780a1d12e41b30839971e48048788ca54ec0e7f58a800a5e449/windnd-1.0.7-py3-none-any.whl", hash = "sha256:357ed0b00e801342a6997f851ee3d5185da2ad4827e0d404d16a2684006c0244", size = 4266, upload-time = "2020-08-17T04:11:11.359Z" },
 ]
 
 [[package]]

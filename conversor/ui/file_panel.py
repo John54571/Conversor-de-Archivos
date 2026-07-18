@@ -6,17 +6,20 @@ from typing import Callable
 from .themes import COLORS, FONTS, SIZES
 from ..utils.file_utils import get_file_info, get_category_icon, get_category_label, build_file_filter
 from ..core.registry import ConverterRegistry
-from ..core.base import FileCategory
+from ..converters.base import FileCategory
 
 
 class FilePanel(ctk.CTkFrame):
-    def __init__(self, parent, on_files_added: Callable | None = None, **kwargs):
+    def __init__(self, parent, on_files_added: Callable | None = None, on_file_selected: Callable | None = None, **kwargs):
         super().__init__(parent, fg_color=COLORS["bg_panel"], corner_radius=SIZES["border_radius"], **kwargs)
 
         self._on_files_added = on_files_added
+        self._on_file_selected = on_file_selected
         self._file_entries: list[dict] = []
+        self._selected_index: int | None = None
 
         self._build_ui()
+        self._setup_drag_drop()
 
     def _build_ui(self):
         header = ctk.CTkFrame(self, fg_color=COLORS["bg_header"], corner_radius=0, height=40)
@@ -63,21 +66,21 @@ class FilePanel(ctk.CTkFrame):
         list_container = ctk.CTkFrame(self, fg_color="transparent")
         list_container.pack(fill="both", expand=True, padx=6, pady=6)
 
-        self._canvas = ctk.CTkScrollableFrame(
+        self._scroll_frame = ctk.CTkScrollableFrame(
             list_container, fg_color=COLORS["bg_secondary"],
             corner_radius=SIZES["border_radius"]
         )
-        self._canvas.pack(fill="both", expand=True)
+        self._scroll_frame.pack(fill="both", expand=True)
 
         self._empty_label = ctk.CTkLabel(
-            self._canvas,
+            self._scroll_frame,
             text="Arrastra archivos aqui\no haz clic en '+ Agregar'",
             font=FONTS["body"],
             text_color=COLORS["fg_muted"],
         )
         self._empty_label.pack(pady=40)
 
-        self._drop_zone = ctk.CTkFrame(self, fg_color=COLORS["accent_light"], corner_radius=4, height=50)
+        self._drop_zone = ctk.CTkFrame(self, fg_color=COLORS["drop_zone"], corner_radius=4, height=50)
         self._drop_zone.pack(fill="x", padx=6, pady=(0, 6))
         self._drop_zone.pack_propagate(False)
 
@@ -86,6 +89,25 @@ class FilePanel(ctk.CTkFrame):
             font=FONTS["small"], text_color=COLORS["accent"]
         )
         drop_label.pack(expand=True)
+
+    def _setup_drag_drop(self):
+        try:
+            import windnd
+
+            def on_drop(files):
+                paths = []
+                for f in files:
+                    path_str = f.decode("utf-8") if isinstance(f, bytes) else str(f)
+                    if Path(path_str).exists():
+                        paths.append(Path(path_str))
+                if paths:
+                    self.add_files(paths)
+
+            windnd.hook_dropfiles(self._drop_zone, func=on_drop)
+        except ImportError:
+            pass
+        except Exception:
+            pass
 
     def _add_files(self):
         file_filter = build_file_filter()
@@ -117,15 +139,15 @@ class FilePanel(ctk.CTkFrame):
                 "valid_outputs": valid_outputs,
             }
             self._file_entries.append(entry)
-            self._create_file_row(entry)
+            self._create_file_row(entry, len(self._file_entries) - 1)
 
         self._update_count()
 
         if self._on_files_added:
             self._on_files_added(self._file_entries)
 
-    def _create_file_row(self, entry: dict):
-        row = ctk.CTkFrame(self._canvas, fg_color=COLORS["bg_panel"], corner_radius=3, height=36)
+    def _create_file_row(self, entry: dict, index: int):
+        row = ctk.CTkFrame(self._scroll_frame, fg_color=COLORS["bg_panel"], corner_radius=3, height=36)
         row.pack(fill="x", padx=2, pady=1)
         row.pack_propagate(False)
 
@@ -150,7 +172,63 @@ class FilePanel(ctk.CTkFrame):
         )
         badge.pack(side="right", padx=(2, 6))
 
+        move_frame = ctk.CTkFrame(row, fg_color="transparent")
+        move_frame.pack(side="right", padx=2)
+
+        if index > 0:
+            up_btn = ctk.CTkButton(move_frame, text="^", width=18, height=18,
+                                   font=("Segoe UI", 8), fg_color="transparent",
+                                   text_color=COLORS["fg_muted"],
+                                   hover_color=COLORS["button_hover"],
+                                   command=lambda e=entry: self._move_up(e))
+            up_btn.pack(side="left", padx=1)
+
+        if index < len(self._file_entries) - 1:
+            down_btn = ctk.CTkButton(move_frame, text="v", width=18, height=18,
+                                     font=("Segoe UI", 8), fg_color="transparent",
+                                     text_color=COLORS["fg_muted"],
+                                     hover_color=COLORS["button_hover"],
+                                     command=lambda e=entry: self._move_down(e))
+            down_btn.pack(side="left", padx=1)
+
+        row.bind("<Button-1>", lambda e, ent=entry: self._select_file(ent))
+        name_label.bind("<Button-1>", lambda e, ent=entry: self._select_file(ent))
+
         entry["widget"] = row
+
+    def _select_file(self, entry: dict):
+        for e in self._file_entries:
+            if "widget" in e:
+                e["widget"].configure(fg_color=COLORS["bg_panel"])
+        
+        entry["widget"].configure(fg_color=COLORS["accent_light"])
+        
+        if self._on_file_selected:
+            self._on_file_selected(entry["path"])
+
+    def _move_up(self, entry: dict):
+        idx = next((i for i, e in enumerate(self._file_entries) if e["path"] == entry["path"]), None)
+        if idx and idx > 0:
+            self._file_entries[idx], self._file_entries[idx - 1] = self._file_entries[idx - 1], self._file_entries[idx]
+            self._refresh_list()
+
+    def _move_down(self, entry: dict):
+        idx = next((i for i, e in enumerate(self._file_entries) if e["path"] == entry["path"]), None)
+        if idx is not None and idx < len(self._file_entries) - 1:
+            self._file_entries[idx], self._file_entries[idx + 1] = self._file_entries[idx + 1], self._file_entries[idx]
+            self._refresh_list()
+
+    def _refresh_list(self):
+        for entry in self._file_entries:
+            if "widget" in entry:
+                entry["widget"].destroy()
+                del entry["widget"]
+        
+        for i, entry in enumerate(self._file_entries):
+            self._create_file_row(entry, i)
+        
+        if self._on_files_added:
+            self._on_files_added(self._file_entries)
 
     def _update_count(self):
         count = len(self._file_entries)

@@ -1,21 +1,31 @@
 import customtkinter as ctk
 from pathlib import Path
 import threading
+import sys
+import os
 
 from .themes import COLORS, FONTS, SIZES
 from .file_panel import FilePanel
 from .options_panel import OptionsPanel
 from .progress_panel import ProgressPanel
+from .preview_panel import PreviewPanel
+from .settings_window import SettingsWindow
+from .log_viewer import LogViewerWindow
+from .history_window import HistoryWindow
 from ..core.engine import ConversionEngine
-from ..core.base import ConversionTask, ConversionOptions, ConversionStatus
+from ..converters.base import ConversionTask, ConversionOptions, ConversionStatus
 from ..utils.ffmpeg_check import check_ffmpeg, check_ffmpeg_version
+from ..utils.config import config_manager
+from ..utils.logger import logger
+from ..utils.zip_utils import create_zip_from_files
+from ..utils.windows_integration import register_windows_context_menu, unregister_windows_context_menu, is_context_menu_registered, handle_command_line_args
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        ctk.set_appearance_mode("light")
+        ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
         self.title("Conversor de Archivos")
@@ -23,13 +33,30 @@ class App(ctk.CTk):
         self.minsize(SIZES["min_width"], SIZES["min_height"])
         self.configure(fg_color=COLORS["bg_primary"])
 
-        self._engine = ConversionEngine(max_workers=3)
+        self._set_icon()
+
+        config = config_manager.get_config()
+        self._engine = ConversionEngine(max_workers=config.max_workers)
         self._engine.set_on_task_update(self._on_task_update)
 
         self._build_ui()
         self._check_dependencies()
+        self._handle_cli_args()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _set_icon(self):
+        try:
+            if getattr(sys, "frozen", False):
+                base_path = sys._MEIPASS
+            else:
+                base_path = str(Path(__file__).parent.parent)
+            
+            icon_path = os.path.join(base_path, "assets", "iconochoro.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
 
     def _build_ui(self):
         top_bar = ctk.CTkFrame(self, fg_color=COLORS["bg_header"], corner_radius=0, height=48)
@@ -41,6 +68,33 @@ class App(ctk.CTk):
             font=FONTS["title"], text_color=COLORS["fg_header"], anchor="w"
         )
         logo.pack(side="left", padx=12, pady=8)
+
+        menu_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
+        menu_frame.pack(side="right", padx=8, pady=8)
+
+        ctk.CTkButton(
+            menu_frame, text="Ajustes", width=70, height=28,
+            font=FONTS["small"], fg_color="transparent",
+            text_color=COLORS["fg_header"],
+            hover_color=COLORS["bg_header_hover"],
+            command=self._open_settings
+        ).pack(side="left", padx=2)
+
+        ctk.CTkButton(
+            menu_frame, text="Historial", width=70, height=28,
+            font=FONTS["small"], fg_color="transparent",
+            text_color=COLORS["fg_header"],
+            hover_color=COLORS["bg_header_hover"],
+            command=self._open_history
+        ).pack(side="left", padx=2)
+
+        ctk.CTkButton(
+            menu_frame, text="Logs", width=60, height=28,
+            font=FONTS["small"], fg_color="transparent",
+            text_color=COLORS["fg_header"],
+            hover_color=COLORS["bg_header_hover"],
+            command=self._open_logs
+        ).pack(side="left", padx=2)
 
         self._ffmpeg_status = ctk.CTkLabel(
             top_bar, text="", font=FONTS["small"],
@@ -55,7 +109,11 @@ class App(ctk.CTk):
         left.pack(side="left", fill="y", padx=(0, 4))
         left.pack_propagate(False)
 
-        self._file_panel = FilePanel(left, on_files_added=self._on_files_changed)
+        self._file_panel = FilePanel(
+            left,
+            on_files_added=self._on_files_changed,
+            on_file_selected=self._on_file_selected
+        )
         self._file_panel.pack(fill="both", expand=True)
 
         center = ctk.CTkFrame(main, fg_color="transparent")
@@ -67,26 +125,47 @@ class App(ctk.CTk):
         right = ctk.CTkFrame(main, fg_color="transparent", width=320)
         right.pack(side="right", fill="both", expand=True, padx=(4, 0))
 
-        self._progress_panel = ProgressPanel(right)
+        right_top = ctk.CTkFrame(right, fg_color="transparent")
+        right_top.pack(fill="both", expand=True)
+
+        self._progress_panel = ProgressPanel(right_top)
         self._progress_panel.pack(fill="both", expand=True)
         self._progress_panel.set_callbacks(
             on_cancel_all=self._cancel_all,
             on_clear_completed=self._clear_completed
         )
 
+        config = config_manager.get_config()
+        if config.show_preview:
+            right_bottom = ctk.CTkFrame(right, fg_color="transparent", height=280)
+            right_bottom.pack(fill="x", pady=(6, 0))
+            right_bottom.pack_propagate(False)
+
+            self._preview_panel = PreviewPanel(right_bottom)
+            self._preview_panel.pack(fill="both", expand=True)
+        else:
+            self._preview_panel = None
+
     def _check_dependencies(self):
         if check_ffmpeg():
-            version = check_ffmpeg_version()
-            short = version.split(",")[0] if version else "OK"
-            self._ffmpeg_status.configure(text=f"FFmpeg: {short}", text_color="#90EE90")
+            self._ffmpeg_status.configure(text="Aplicación creada por John", text_color=COLORS["fg_header"])
         else:
             self._ffmpeg_status.configure(
                 text="FFmpeg no encontrado (audio/video no disponibles)",
                 text_color="#FFB6B6"
             )
 
+    def _handle_cli_args(self):
+        file_path = handle_command_line_args()
+        if file_path:
+            self.after(500, lambda: self._file_panel.add_files([file_path]))
+
     def _on_files_changed(self, file_entries: list[dict]):
         self._options_panel.update_files(file_entries)
+
+    def _on_file_selected(self, file_path: Path):
+        if self._preview_panel:
+            self._preview_panel.show_preview(file_path)
 
     def _on_convert(self, conversion_plan: list[dict]):
         self._progress_panel.clear_all()
@@ -110,14 +189,33 @@ class App(ctk.CTk):
 
     def _poll_progress(self):
         summary = self._engine.get_summary()
-        self._progress_panel.update_global(summary)
+        estimated_time = self._engine.get_estimated_time_remaining()
+        self._progress_panel.update_global(summary, estimated_time)
 
         active = self._engine.get_active_tasks()
         if active:
             self.after(300, self._poll_progress)
         else:
-            self._progress_panel.update_global(summary)
+            self._progress_panel.update_global(summary, 0.0)
             self._options_panel.set_converting(False)
+
+            config = config_manager.get_config()
+            if config.create_zip_on_batch:
+                completed_tasks = [t for t in self._engine.get_all_tasks() if t.status == ConversionStatus.COMPLETED]
+                if len(completed_tasks) > 1:
+                    self._create_zip_from_completed(completed_tasks)
+
+    def _create_zip_from_completed(self, tasks: list[ConversionTask]):
+        output_files = [t.output_path for t in tasks if t.output_path and t.output_path.exists()]
+        if output_files:
+            output_dir = output_files[0].parent
+            zip_path = output_dir / "conversion_result.zip"
+            
+            def _do_zip():
+                create_zip_from_files(output_files, zip_path)
+                logger.info(f"ZIP creado: {zip_path}")
+            
+            threading.Thread(target=_do_zip, daemon=True).start()
 
     def _on_task_update(self, task: ConversionTask):
         self.after(0, lambda: self._progress_panel.update_task(task))
@@ -129,6 +227,15 @@ class App(ctk.CTk):
     def _clear_completed(self):
         self._engine.clear_completed()
         self._progress_panel.clear_all()
+
+    def _open_settings(self):
+        SettingsWindow(self)
+
+    def _open_history(self):
+        HistoryWindow(self)
+
+    def _open_logs(self):
+        LogViewerWindow(self)
 
     def _on_close(self):
         self._engine.shutdown(wait=False)

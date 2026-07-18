@@ -2,7 +2,7 @@ import customtkinter as ctk
 from typing import Callable
 
 from .themes import COLORS, FONTS, SIZES
-from ..core.base import ConversionTask, ConversionStatus
+from ..converters.base import ConversionTask, ConversionStatus
 from ..utils.file_utils import get_category_icon, format_file_size
 
 
@@ -55,13 +55,19 @@ class ProgressPanel(ctk.CTkFrame):
         self._global_label.pack(fill="x", padx=8, pady=(6, 0))
 
         self._global_progress = ctk.CTkProgressBar(
-            self._global_frame, height=8,
+            self._global_frame, height=10,
             fg_color=COLORS["progress_bg"],
             progress_color=COLORS["progress_fill"],
-            corner_radius=4
+            corner_radius=5
         )
-        self._global_progress.pack(fill="x", padx=8, pady=(2, 6))
+        self._global_progress.pack(fill="x", padx=8, pady=(2, 2))
         self._global_progress.set(0)
+
+        self._time_label = ctk.CTkLabel(
+            self._global_frame, text="Tiempo estimado: --",
+            font=FONTS["small"], text_color=COLORS["fg_muted"], anchor="w"
+        )
+        self._time_label.pack(fill="x", padx=8, pady=(0, 6))
 
         self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self._scroll.pack(fill="both", expand=True, padx=6, pady=(2, 6))
@@ -164,7 +170,7 @@ class ProgressPanel(ctk.CTkFrame):
             if task.error_message:
                 widgets["format_label"].configure(text=task.error_message[:40], text_color=COLORS["error"])
 
-    def update_global(self, summary: dict):
+    def update_global(self, summary: dict, estimated_time: float = 0.0):
         total = summary["total"]
         completed = summary["completed"]
         failed = summary["failed"]
@@ -173,6 +179,7 @@ class ProgressPanel(ctk.CTkFrame):
         if total == 0:
             self._global_label.configure(text="Esperando tareas...")
             self._global_progress.set(0)
+            self._time_label.configure(text="Tiempo estimado: --")
             return
 
         done = completed + failed
@@ -193,9 +200,22 @@ class ProgressPanel(ctk.CTkFrame):
 
         self._global_label.configure(text=f"{done}/{total} - {', '.join(parts)}")
 
+        if estimated_time > 0:
+            minutes = int(estimated_time // 60)
+            seconds = int(estimated_time % 60)
+            if minutes > 0:
+                time_text = f"Tiempo estimado: {minutes}m {seconds}s"
+            else:
+                time_text = f"Tiempo estimado: {seconds}s"
+        else:
+            time_text = "Tiempo estimado: --"
+        
+        self._time_label.configure(text=time_text)
+
     def clear_all(self):
         for widgets in self._task_widgets.values():
             widgets["frame"].destroy()
         self._task_widgets.clear()
         self._global_label.configure(text="Esperando tareas...")
         self._global_progress.set(0)
+        self._time_label.configure(text="Tiempo estimado: --")

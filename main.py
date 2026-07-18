@@ -9,6 +9,7 @@ from conversor.converters.images import ImageConverter
 from conversor.converters.audio import AudioConverter
 from conversor.converters.video import VideoConverter
 from conversor.ui.app import App
+from conversor.utils.logger import logger
 
 
 def main():
@@ -16,6 +17,8 @@ def main():
     _ = ImageConverter
     _ = AudioConverter
     _ = VideoConverter
+
+    logger.info("Iniciando Conversor de Archivos")
 
     app = App()
     app.mainloop()
