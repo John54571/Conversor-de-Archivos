@@ -20,6 +20,7 @@ from ..utils.logger import logger
 from ..utils.zip_utils import create_zip_from_files
 from ..utils.windows_integration import register_windows_context_menu, unregister_windows_context_menu, is_context_menu_registered, handle_command_line_args
 from ..utils.update_checker import check_for_updates
+from .. import __version__
 
 
 class App(ctk.CTk):
@@ -34,9 +35,16 @@ class App(ctk.CTk):
         self.minsize(SIZES["min_width"], SIZES["min_height"])
         self.configure(fg_color=COLORS["bg_primary"])
 
+        # Loguear información del sistema al inicio
+        logger.log_system_info()
+        logger.info(f"Versión de la aplicación: {__version__}")
+        logger.info("Iniciando Conversor de Archivos...")
+
         self._set_icon()
 
         config = config_manager.get_config()
+        logger.info(f"Configuración cargada: max_workers={config.max_workers}, max_retries={config.max_retries}")
+        
         self._engine = ConversionEngine(max_workers=config.max_workers)
         self._engine.set_on_task_update(self._on_task_update)
 
@@ -151,20 +159,32 @@ class App(ctk.CTk):
             self._preview_panel = None
 
     def _check_dependencies(self):
+        logger.info("Verificando dependencias del sistema...")
+        
         if check_ffmpeg():
             self._ffmpeg_status.configure(text="Aplicación creada por John", text_color=COLORS["fg_header"])
+            logger.info("Dependencias: FFmpeg OK")
         else:
             self._ffmpeg_status.configure(
                 text="FFmpeg no encontrado (audio/video no disponibles)",
                 text_color="#FFB6B6"
             )
+            logger.error("Dependencias: FFmpeg NO disponible - conversiones de audio/video deshabilitadas")
 
     def _ensure_context_menu(self):
-        if sys.platform == "win32" and not is_context_menu_registered():
-            try:
-                register_windows_context_menu()
-            except Exception:
-                pass
+        if sys.platform != "win32":
+            logger.debug("Menú contextual: no disponible en esta plataforma")
+            return
+        
+        if is_context_menu_registered():
+            logger.info("Menú contextual: ya registrado")
+        else:
+            logger.info("Menú contextual: no registrado, intentando registrar...")
+            success = register_windows_context_menu()
+            if success:
+                logger.info("Menú contextual: registrado exitosamente")
+            else:
+                logger.error("Menú contextual: fallo al registrar (ver logs para detalles)")
 
     def _setup_dynamic_scaling(self):
         self._base_width = SIZES["min_width"]

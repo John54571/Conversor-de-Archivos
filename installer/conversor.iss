@@ -51,21 +51,22 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [Code]
 // Función para registrar el menú contextual de Windows
+// Usamos HKEY_CURRENT_USER\Software\Classes para no requerir permisos de admin
 procedure RegisterContextMenu();
 var
   RegKey: string;
 begin
-  RegKey := '*\shell\ConversorDeArchivos';
-  RegWriteStringValue(HKEY_CLASSES_ROOT, RegKey, '', 'Convertir con Conversor de Archivos');
-  RegWriteStringValue(HKEY_CLASSES_ROOT, RegKey, 'Icon', ExpandConstant('{app}\iconochoro.ico'));
-  RegWriteStringValue(HKEY_CLASSES_ROOT, RegKey + '\command', '', '"' + ExpandConstant('{app}\{#MyAppExeName}') + '" "%1"');
+  RegKey := 'Software\Classes\*\shell\ConversorDeArchivos';
+  RegWriteStringValue(HKEY_CURRENT_USER, RegKey, '', 'Convertir con Conversor de Archivos');
+  RegWriteStringValue(HKEY_CURRENT_USER, RegKey, 'Icon', ExpandConstant('{app}\iconochoro.ico'));
+  RegWriteStringValue(HKEY_CURRENT_USER, RegKey + '\command', '', '"' + ExpandConstant('{app}\{#MyAppExeName}') + '" "%1"');
 end;
 
 // Función para desregistrar el menú contextual
 procedure UnregisterContextMenu();
 begin
-  RegDeleteKeyIncludingSubkeys(HKEY_CLASSES_ROOT, '*\shell\ConversorDeArchivos\command');
-  RegDeleteKeyIfEmpty(HKEY_CLASSES_ROOT, '*\shell\ConversorDeArchivos');
+  RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Classes\*\shell\ConversorDeArchivos\command');
+  RegDeleteKeyIfEmpty(HKEY_CURRENT_USER, 'Software\Classes\*\shell\ConversorDeArchivos');
 end;
 
 // Descargar e instalar FFmpeg

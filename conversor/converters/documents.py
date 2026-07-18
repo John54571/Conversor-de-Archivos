@@ -158,12 +158,21 @@ class DocumentConverter(BaseConverter):
         import io
         import tempfile
 
+        logger.info(f"Convirtiendo DOCX a PDF: {src.name}")
+        logger.debug(f"Ruta origen: {src}")
+        logger.debug(f"Ruta destino: {dst}")
+
         doc = Document(str(src))
+        num_paragraphs = len(doc.paragraphs)
+        num_tables = len(doc.tables)
+        logger.debug(f"Documento cargado: {num_paragraphs} párrafos, {num_tables} tablas")
+        
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
         pdf.set_font("Helvetica", size=11)
 
+        images_added = 0
         for element in doc.element.body:
             if isinstance(element, CT_P):
                 para = None
@@ -188,10 +197,11 @@ class DocumentConverter(BaseConverter):
                                             image.save(tmp.name)
                                             pdf.image(tmp.name, x=10, w=100)
                                             pdf.ln(image.height * 0.2 + 5)
+                                            images_added += 1
                                             import os
                                             os.unlink(tmp.name)
                                     except Exception as e:
-                                        logger.debug(f"Error al procesar imagen: {e}")
+                                        logger.debug(f"Error al procesar imagen en párrafo: {e}")
             elif isinstance(element, CT_Tbl):
                 table = None
                 for t in doc.tables:
@@ -215,8 +225,15 @@ class DocumentConverter(BaseConverter):
         if task.on_progress:
             task.on_progress(1.0)
 
+        dst_size = dst.stat().st_size if dst.exists() else 0
+        logger.info(f"PDF generado: {dst.name} ({dst_size} bytes, {images_added} imágenes)")
+
     def _pdf_to_docx(self, src: Path, dst: Path, task: ConversionTask):
         from pdf2docx import Converter as Pdf2DocxConverter
+
+        logger.info(f"Convirtiendo PDF a DOCX: {src.name}")
+        logger.debug(f"Ruta origen: {src}")
+        logger.debug(f"Ruta destino: {dst}")
 
         cv = Pdf2DocxConverter(str(src))
         cv.convert(str(dst))
@@ -225,23 +242,44 @@ class DocumentConverter(BaseConverter):
         if task.on_progress:
             task.on_progress(1.0)
 
+        dst_size = dst.stat().st_size if dst.exists() else 0
+        logger.info(f"DOCX generado: {dst.name} ({dst_size} bytes)")
+
     def _xlsx_to_csv(self, src: Path, dst: Path, task: ConversionTask):
         import pandas as pd
 
+        logger.info(f"Convirtiendo XLSX a CSV: {src.name}")
+        logger.debug(f"Ruta origen: {src}")
+        logger.debug(f"Ruta destino: {dst}")
+
         df = pd.read_excel(str(src), sheet_name=0)
+        logger.debug(f"Excel cargado: {len(df)} filas, {len(df.columns)} columnas")
+        
         df.to_csv(str(dst), index=False, encoding="utf-8")
 
         if task.on_progress:
             task.on_progress(1.0)
 
+        dst_size = dst.stat().st_size if dst.exists() else 0
+        logger.info(f"CSV generado: {dst.name} ({dst_size} bytes, {len(df)} filas)")
+
     def _csv_to_xlsx(self, src: Path, dst: Path, task: ConversionTask):
         import pandas as pd
 
+        logger.info(f"Convirtiendo CSV a XLSX: {src.name}")
+        logger.debug(f"Ruta origen: {src}")
+        logger.debug(f"Ruta destino: {dst}")
+
         df = pd.read_csv(str(src))
+        logger.debug(f"CSV cargado: {len(df)} filas, {len(df.columns)} columnas")
+        
         df.to_excel(str(dst), index=False, engine="openpyxl")
 
         if task.on_progress:
             task.on_progress(1.0)
+
+        dst_size = dst.stat().st_size if dst.exists() else 0
+        logger.info(f"XLSX generado: {dst.name} ({dst_size} bytes, {len(df)} filas)")
 
     def _txt_to_pdf(self, src: Path, dst: Path, task: ConversionTask):
         from fpdf import FPDF

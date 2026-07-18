@@ -97,5 +97,32 @@ class ConversionLogger:
     def get_current_log_path(self) -> Path:
         return self._current_log_file
 
+    def log_system_info(self):
+        """Loguear información completa del sistema para diagnóstico."""
+        import os
+        import sys
+        from pathlib import Path
+        
+        self.info("=" * 70)
+        self.info("INFORMACIÓN DEL SISTEMA")
+        self.info("=" * 70)
+        self.info(f"Sistema operativo: {sys.platform}")
+        self.info(f"Versión de Python: {sys.version}")
+        self.info(f"Directorio de trabajo: {Path.cwd()}")
+        
+        if getattr(sys, "frozen", False):
+            self.info(f"Modo de ejecución: EMPAQUETADO (PyInstaller)")
+            self.info(f"Base path (sys._MEIPASS): {sys._MEIPASS}")
+        else:
+            self.info(f"Modo de ejecución: DESARROLLO")
+        
+        self.info(f"PATH del sistema:")
+        path_env = os.environ.get("PATH", "NO SET")
+        for p in path_env.split(os.pathsep):
+            if p:
+                self.info(f"  - {p}")
+        
+        self.info("=" * 70)
+
 
 logger = ConversionLogger()
