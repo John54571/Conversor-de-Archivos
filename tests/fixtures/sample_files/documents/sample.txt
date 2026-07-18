@@ -1,0 +1,9 @@
+Sample Text File
+
+This is a test text file with multiple paragraphs.
+
+Second paragraph with more content for testing conversions.
+
+Third paragraph after empty line.
+
+Final paragraph with some text.

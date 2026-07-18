@@ -152,7 +152,11 @@ class DocumentConverter(BaseConverter):
         from docx import Document
         from docx.oxml.text.paragraph import CT_P
         from docx.oxml.table import CT_Tbl
+        from docx.opc.constants import RELATIONSHIP_TYPE as RT
         from fpdf import FPDF
+        from PIL import Image
+        import io
+        import tempfile
 
         doc = Document(str(src))
         pdf = FPDF()
@@ -173,6 +177,21 @@ class DocumentConverter(BaseConverter):
                         pdf.multi_cell(w=190, h=6, text=text)
                     else:
                         pdf.ln(4)
+
+                    for run in para.runs:
+                        if run._element.xml.find("w:drawing") != -1 or run._element.xml.find("w:pict") != -1:
+                            for rel_id, rel in para.part.rels.items():
+                                if "image" in rel.reltype:
+                                    try:
+                                        image = Image.open(io.BytesIO(rel.target_part.blob))
+                                        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                                            image.save(tmp.name)
+                                            pdf.image(tmp.name, x=10, w=100)
+                                            pdf.ln(image.height * 0.2 + 5)
+                                            import os
+                                            os.unlink(tmp.name)
+                                    except Exception as e:
+                                        logger.debug(f"Error al procesar imagen: {e}")
             elif isinstance(element, CT_Tbl):
                 table = None
                 for t in doc.tables:

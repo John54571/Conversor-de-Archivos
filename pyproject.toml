@@ -1,6 +1,6 @@
 [project]
 name = "conversor-de-archivos"
-version = "1.5.2"
+version = "1.5.3"
 description = "Conversor universal de archivos con GUI - Soporta imagenes, audio, video y documentos"
 requires-python = ">=3.10"
 dependencies = [
@@ -33,7 +33,11 @@ dependencies = [
 conversor = "main:main"
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["conversor"]
