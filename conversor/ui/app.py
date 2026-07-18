@@ -168,30 +168,14 @@ class App(ctk.CTk):
 
     def _setup_scaling(self):
         self._base_width = SIZES["min_width"]
-        self._scale_factor = 1.0
         self.bind("<Configure>", self._on_window_resize)
 
     def _on_window_resize(self, event):
         if event.widget != self:
             return
         new_width = self.winfo_width()
-        new_scale = max(1.0, new_width / self._base_width)
-        if abs(new_scale - self._scale_factor) > 0.05:
-            self._scale_factor = new_scale
-            self.after(100, self._update_scaling)
-
-    def _update_scaling(self):
-        scale = self._scale_factor
-        new_fonts = {
-            "title": ("Segoe UI", int(20 * scale), "bold"),
-            "heading": ("Segoe UI", int(16 * scale), "bold"),
-            "body": ("Segoe UI", int(13 * scale)),
-            "body_bold": ("Segoe UI", int(13 * scale), "bold"),
-            "small": ("Segoe UI", int(11 * scale)),
-            "small_bold": ("Segoe UI", int(11 * scale), "bold"),
-            "mono": ("Consolas", int(12 * scale)),
-        }
-        FONTS.update(new_fonts)
+        scale = max(1.0, new_width / self._base_width)
+        ctk.set_widget_scaling(scale)
 
     def _check_updates_on_startup(self):
         def _do_check():

@@ -30,16 +30,16 @@ class ReleaseInfo:
 def get_current_version() -> str:
     try:
         if getattr(sys, "frozen", False):
-            base_path = Path(sys._MEIPASS)
+            from conversor import __version__
+            return __version__
         else:
             base_path = Path(__file__).parent.parent.parent
-        
-        pyproject_path = base_path / "pyproject.toml"
-        if pyproject_path.exists():
-            content = pyproject_path.read_text(encoding="utf-8")
-            match = re.search(r'version\s*=\s*"([^"]+)"', content)
-            if match:
-                return match.group(1)
+            pyproject_path = base_path / "pyproject.toml"
+            if pyproject_path.exists():
+                content = pyproject_path.read_text(encoding="utf-8")
+                match = re.search(r'version\s*=\s*"([^"]+)"', content)
+                if match:
+                    return match.group(1)
     except Exception as e:
         logger.error(f"Error al leer versión actual: {e}")
     
