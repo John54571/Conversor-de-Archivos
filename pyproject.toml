@@ -1,0 +1,42 @@
+[project]
+name = "conversor-de-archivos"
+version = "0.1.0"
+description = "Conversor universal de archivos con GUI - Soporta imagenes, audio, video y documentos"
+requires-python = ">=3.10"
+dependencies = [
+    "customtkinter>=5.2.0",
+    "pillow>=10.0.0",
+    "pydub>=0.25.1",
+    "ffmpeg-python>=0.2.0",
+    "python-docx>=0.8.11",
+    "pypdf>=3.0.0",
+    "pdf2docx>=0.5.6",
+    "openpyxl>=3.1.0",
+    "pandas>=2.0.0",
+    "python-pptx>=0.6.21",
+    "fpdf2>=2.7.0",
+    "pdf2image>=1.16.0",
+    "pyinstaller>=6.0.0",
+    "paddlepaddle>=3.3.1",
+    "paddleocr>=3.7.0",
+    "mutagen>=1.48.1",
+    "tkinterdnd2>=0.6.2",
+    "pillow-heif>=1.4.0",
+    "cairosvg>=2.9.0",
+    "ebooklib>=0.20",
+    "beautifulsoup4>=4.15.0",
+    "pygame>=2.6.1",
+]
+
+[project.scripts]
+conversor = "main:main"
+
+[dependency-groups]
+dev = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["conversor"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
