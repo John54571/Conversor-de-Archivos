@@ -23,21 +23,24 @@ def check_ffmpeg(configured_path: str = "") -> tuple[bool, str]:
     # 1. Ruta manual configurada
     if configured_path:
         logger.info(f"Usando ruta manual de FFmpeg: {configured_path}")
-        ffmpeg_path = Path(configured_path)
-        if ffmpeg_path.is_file() and ffmpeg_path.name.lower() == "ffmpeg.exe":
-            logger.info(f"Ruta manual válida: {configured_path}")
-            version = check_ffmpeg_version(str(ffmpeg_path.parent))
-            if version:
-                logger.info(f"Versión de FFmpeg: {version}")
-            return True, str(ffmpeg_path.parent)
-        elif ffmpeg_path.is_dir() and (ffmpeg_path / "ffmpeg.exe").exists():
-            logger.info(f"Ruta manual válida (directorio): {configured_path}")
-            version = check_ffmpeg_version(configured_path)
-            if version:
-                logger.info(f"Versión de FFmpeg: {version}")
-            return True, configured_path
-        else:
-            logger.error(f"Ruta manual NO válida: {configured_path} (ffmpeg.exe no encontrado)")
+        try:
+            if os.path.isfile(configured_path) and configured_path.lower().endswith("ffmpeg.exe"):
+                logger.info(f"Ruta manual válida: {configured_path}")
+                ffmpeg_dir = str(Path(configured_path).parent)
+                version = check_ffmpeg_version(ffmpeg_dir)
+                if version:
+                    logger.info(f"Versión de FFmpeg: {version}")
+                return True, ffmpeg_dir
+            elif os.path.isdir(configured_path) and os.path.isfile(os.path.join(configured_path, "ffmpeg.exe")):
+                logger.info(f"Ruta manual válida (directorio): {configured_path}")
+                version = check_ffmpeg_version(configured_path)
+                if version:
+                    logger.info(f"Versión de FFmpeg: {version}")
+                return True, configured_path
+            else:
+                logger.error(f"Ruta manual NO válida: {configured_path} (ffmpeg.exe no encontrado)")
+        except OSError as e:
+            logger.error(f"Error al verificar ruta manual: {e}")
 
     # 2. PATH del sistema
     if hasattr(shutil.which, "cache_clear"):
@@ -59,15 +62,19 @@ def check_ffmpeg(configured_path: str = "") -> tuple[bool, str]:
     for common_path in COMMON_FFMPEG_PATHS:
         if not common_path:
             continue
-        ffmpeg_exe = common_path / "ffmpeg.exe"
-        if common_path.is_dir() and ffmpeg_exe.exists():
-            logger.info(f"FFmpeg encontrado en ruta común: {common_path}")
-            version = check_ffmpeg_version(str(common_path))
-            if version:
-                logger.info(f"Versión de FFmpeg: {version}")
-            return True, str(common_path)
-        else:
-            logger.debug(f"  {common_path} → no encontrado")
+        try:
+            common_str = str(common_path)
+            ffmpeg_exe = os.path.join(common_str, "ffmpeg.exe")
+            if os.path.isdir(common_str) and os.path.isfile(ffmpeg_exe):
+                logger.info(f"FFmpeg encontrado en ruta común: {common_str}")
+                version = check_ffmpeg_version(common_str)
+                if version:
+                    logger.info(f"Versión de FFmpeg: {version}")
+                return True, common_str
+            else:
+                logger.debug(f"  {common_str} → no encontrado")
+        except OSError as e:
+            logger.debug(f"  {common_path} → error de acceso (reparse point): {e}")
 
     # 4. No encontrado
     logger.warning("FFmpeg NO encontrado en ninguna ubicación")
@@ -85,7 +92,7 @@ def check_ffmpeg_version(ffmpeg_dir: str = "") -> str | None:
     try:
         cmd = ["ffmpeg", "-version"]
         if ffmpeg_dir:
-            cmd[0] = str(Path(ffmpeg_dir) / "ffmpeg.exe")
+            cmd[0] = os.path.join(ffmpeg_dir, "ffmpeg.exe")
 
         result = subprocess.run(
             cmd,
@@ -120,10 +127,13 @@ def get_ffmpeg_path(configured_path: str = "") -> str | None:
 def check_ffprobe(configured_path: str = "") -> bool:
     """Verificar si FFprobe está disponible."""
     if configured_path:
-        ffprobe_exe = Path(configured_path) / "ffprobe.exe"
-        if ffprobe_exe.exists():
-            logger.debug(f"FFprobe encontrado en ruta configurada: {ffprobe_exe}")
-            return True
+        try:
+            ffprobe_exe = os.path.join(configured_path, "ffprobe.exe")
+            if os.path.isfile(ffprobe_exe):
+                logger.debug(f"FFprobe encontrado en ruta configurada: {ffprobe_exe}")
+                return True
+        except OSError:
+            pass
 
     if hasattr(shutil.which, "cache_clear"):
         shutil.which.cache_clear()
@@ -136,10 +146,14 @@ def check_ffprobe(configured_path: str = "") -> bool:
     for common_path in COMMON_FFMPEG_PATHS:
         if not common_path:
             continue
-        ffprobe_exe = common_path / "ffprobe.exe"
-        if common_path.is_dir() and ffprobe_exe.exists():
-            logger.debug(f"FFprobe encontrado en ruta común: {common_path}")
-            return True
+        try:
+            common_str = str(common_path)
+            ffprobe_exe = os.path.join(common_str, "ffprobe.exe")
+            if os.path.isdir(common_str) and os.path.isfile(ffprobe_exe):
+                logger.debug(f"FFprobe encontrado en ruta común: {common_str}")
+                return True
+        except OSError:
+            logger.debug(f"  {common_path} → error de acceso (reparse point)")
 
     logger.debug("FFprobe NO encontrado")
     return False

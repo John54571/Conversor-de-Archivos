@@ -19,7 +19,8 @@ class TestCheckFfmpeg:
         from conversor.utils.ffmpeg_check import check_ffmpeg
         mock_which.return_value = None
         # Mock common paths to not exist
-        with patch("pathlib.Path.is_dir", return_value=False):
+        with patch("os.path.isdir", return_value=False), \
+             patch("os.path.isfile", return_value=False):
             found, path = check_ffmpeg()
             assert found is False
             assert path == ""
@@ -78,7 +79,8 @@ class TestGetFfmpegPath:
     def test_path_not_found(self, mock_which):
         from conversor.utils.ffmpeg_check import get_ffmpeg_path
         mock_which.return_value = None
-        with patch("pathlib.Path.is_dir", return_value=False):
+        with patch("os.path.isdir", return_value=False), \
+             patch("os.path.isfile", return_value=False):
             path = get_ffmpeg_path()
             assert path is None
 
@@ -96,5 +98,6 @@ class TestCheckFfprobe:
     def test_ffprobe_not_available(self, mock_which):
         from conversor.utils.ffmpeg_check import check_ffprobe
         mock_which.return_value = None
-        with patch("pathlib.Path.is_dir", return_value=False):
+        with patch("os.path.isdir", return_value=False), \
+             patch("os.path.isfile", return_value=False):
             assert check_ffprobe() is False

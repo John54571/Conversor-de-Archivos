@@ -587,7 +587,7 @@ wheels = [
 
 [[package]]
 name = "conversor-de-archivos"
-version = "1.5.3"
+version = "1.5.5"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
