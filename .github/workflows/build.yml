@@ -1,9 +1,7 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:  # Solo ejecución manual desde la UI de GitHub
 
 permissions:
   contents: write
